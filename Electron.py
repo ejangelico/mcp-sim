@@ -3,48 +3,73 @@ import Field
 
 #creating an electron. Currently looking at an E field in the x direction.
 class Electron:
-	def __init__(self, pos_x, pos_y, pos_z, vel_x = None, vel_y = None, vel_z = None):
+	def __init__(self, pos, vel = [0,0,0], acc = [0,0,0]):
+
+		#Kinetmatic Variables
+
+		#the mass units need to change as saving
+		#numbers that are in the 10^-32 range is
+		#not reliable from a computer memory standpoint. 
+		#I would suggest working things out in terms of 
+		#electron-volts and then having some functions that
+		#solely do unit conversion math - constants being contained
+		#in those functions
 		self.mass = 9.10938356 * (10**(-31)) #kg
 		self.charge = 1.60217662 * (10**(-19)) #Coulombs
-		self.pos_x = pos_x
-		self.pos_y = pos_y
-		self.pos_z = pos_z
-		self.vel_x = 0
-		self.vel_y = 0
-		self.vel_z = 0
-		self.a_x = 1
-		self.a_y = 1
-		self.a_z = 1
+		self.pos = pos
+		self.vel = vel
+		self.acc = acc
+
+		#State variables
+		self.last_pos = pos
+		self.is_intersected = False
+
 	
+	def get_pos(self):
+		return self.pos
+
+	def get_lastpos(self):
+		return self.last_pos
+
+	def get_vel(self):
+		return self.vel
 
 	def get_pos_x(self):
-		return self.pos_x
+		return self.pos[0]
 
 	def get_pos_y(self):
-		return self.pos_y
+		return self.pos[1]
 
 	def get_pos_z(self):
-		return self.pos_z
+		return self.pos[2]
 
 	def get_vel_x(self):
-		return self.vel_x
+		return self.vel[0]
 
 	def get_vel_y(self):
-		return self.vel_y
+		return self.vel[1]
 
 	def get_vel_z(self):
-		return self.vel_z
+		return self.vel[2]
+
+	def get_intersected(self):
+		return self.is_intersected
+
+	def set_intersected(self, a):
+		self.is_intersected = a
+
 	
 	#currently set up to propagate the kinematics through steps of dt
-	def propagate(self, E, dt):
-		self.a_z = (E*self.charge)/self.mass
-		self.vel_x = self.vel_x + self.a_x*dt
-		self.vel_y = self.vel_y + self.a_y*dt
-		self.vel_z = self.vel_z + self.a_z*dt
+	#dt in nanoseconds
+	def propagate(self, field, dt):
+		#vector [x,y,z] field value
+		Emag = field.get_magnitude(self.pos)
 
-		self.pos_x = self.pos_x + self.vel_x*dt
-		self.pos_y = self.pos_y + self.vel_y*dt
-		self.pos_z = self.pos_z + self.vel_z*dt
+		self.acc[2] = (Emag[2]*self.charge)/self.mass
+		self.last_pos = self.pos
+		for i in range(3):
+			self.vel[i] = self.vel[i] + self.acc[i]*dt
+			self.pos[i] = self.pos[i] + self.vel[i]*dt
 
 	
 		
