@@ -5,31 +5,51 @@ import Mcp
 import matplotlib.pyplot as plt 
 from mpl_toolkits.mplot3d import Axes3D
 import sys
+import time
 
 # generate random electrons with random positions
 electrons=[]
 
 for i in range(100):
-	pos = (4*((2*np.random.rand(3))-1))
-	electron=Electron.Electron(pos[0], pos[1], pos[2])
+	xyrange = [-1000, 1000]
+	#random dist of electrons between -1000 and 1000 microns all at z=5e5 microns
+	pos = [np.random.uniform(xyrange[0], xyrange[1]), np.random.uniform(xyrange[0], xyrange[1]), 5e5]
+	electron=Electron.Electron(pos)
 	electrons.append(electron)
 
 #create E field
-field = Field.Field()
-E = field.get_magnitude()
+field = Field.Field(2)
 
 #create an Mcp instance. Requires parameters: pore radius, square dimension, pore spacing
-my_mcp=Mcp.Mcp(0.1, 4, 0.25)
+mcpthick = 1000. #um
+pore_rad = 10. #um
+pore_space = pore_rad + 3 #um
+mcplength = 33. #mm
+pore_bias_x = 8. #degrees
+pore_bias_y = 0. #degrees
+top_z_coord = 1e4 #um
+my_mcp=Mcp.Mcp(pore_rad, mcplength, pore_space, mcpthick, pore_bias_x, pore_bias_y)
 
-while len(electrons) != 0:  #will run until every electron has hit a wall (i.e. is outside a pore)
+
+timestep = 0.01 #nanoseconds
+endtime = 2 #nanoseconds
+curtime = 0
+while True:
+	if(int(curtime*1000) % 100 == 0):
+		print "evolved to time " + str(curtime) + " ns"
+
+	if(curtime > endtime):
+		break
+
 	for e in electrons:
-		in_pore = my_mcp.check_intersection(e) #checks to see if electon is still in a pore
-		if in_pore == True:
-			e.propagate(E, 0.5) #the propagate functionrequires the params: field magnitude, time step. Currently only in z direction.
+		in_bulk = my_mcp.is_electron_in_bulk(e) #checks to see if electon has propagated inside the bulk of the MCP
+		if in_bulk == False:
+			e.propagate(field, timestep) #the propagate functionrequires the params: field object, time step. Currently only in z direction.
 
 		else:
-			print(f'Intersected at r = ({e.pos_x:.2f},{e.pos_y:.2f},{e.pos_z:.2f})') #location of e when it is outside of pore
-			electrons.remove(e)
+			e.set_intersected(True)
+
+	curtime += timestep
 
 
 
