@@ -10,15 +10,27 @@ import time
 # generate random electrons with random positions
 electrons=[]
 
-for i in range(100):
-	xyrange = [-1000, 1000]
-	#random dist of electrons between -1000 and 1000 microns all at z=5e5 microns
-	pos = [np.random.uniform(xyrange[0], xyrange[1]), np.random.uniform(xyrange[0], xyrange[1]), 5e5]
-	electron=Electron.Electron(pos)
+for i in range(10):
+	xyrange = [-1, 1]
+	#random dist of electrons between -1000 and 1000 microns all at z=1e5 microns
+	pos = [np.random.uniform(xyrange[0], xyrange[1]), np.random.uniform(xyrange[0], xyrange[1]), 1100]
+	electron=Electron.Electron(pos, [0,0,0],[0,0,0])
 	electrons.append(electron)
 
+
+
+fig1 = plt.figure()
+ax = fig1.add_subplot(111, projection='3d')
+
+#for e in electrons:
+	#ax.scatter(e.get_pos_x(), e.get_pos_y(), e.get_pos_z(), s=1, color='b')
+
+
 #create E field
-field = Field.Field(2)
+
+const_mag = -200 #volts/cm pointing down into mcp
+Ef = Field.Field(const_mag)
+
 
 #create an Mcp instance. Requires parameters: pore radius, square dimension, pore spacing
 mcpthick = 1000. #um
@@ -27,31 +39,43 @@ pore_space = pore_rad + 3 #um
 mcplength = 33. #mm
 pore_bias_x = 8. #degrees
 pore_bias_y = 0. #degrees
-top_z_coord = 1e4 #um
-my_mcp=Mcp.Mcp(pore_rad, mcplength, pore_space, mcpthick, pore_bias_x, pore_bias_y)
+top_z_coord = 1000 #um
+my_mcp=Mcp.Mcp(pore_rad, mcplength, pore_space, top_z_coord, mcpthick, pore_bias_x, pore_bias_y)
 
 
-timestep = 0.01 #nanoseconds
+
+
+timestep = 0.001 #nanoseconds
 endtime = 2 #nanoseconds
 curtime = 0
+
 while True:
-	if(int(curtime*1000) % 100 == 0):
-		print "evolved to time " + str(curtime) + " ns"
+
+	print 'time is', curtime
 
 	if(curtime > endtime):
 		break
 
 	for e in electrons:
-		in_bulk = my_mcp.is_electron_in_bulk(e) #checks to see if electon has propagated inside the bulk of the MCP
-		if in_bulk == False:
-			e.propagate(field, timestep) #the propagate functionrequires the params: field object, time step. Currently only in z direction.
-
+		in_bulk = my_mcp.is_electron_in_bulk(e) #
+		#checks to see if electon has propagated inside the bulk of the MCP
+		if(in_bulk == False):
+			e.propagate(Ef, timestep) #the propagate functionrequires the params: field object, time step. Currently only in z direction.
 		else:
 			e.set_intersected(True)
+		
 
 	curtime += timestep
 
 
+for e in electrons:
+	ax.scatter(e.get_pos_x(), e.get_pos_y(), e.get_pos_z(), s=1, color='k')
+
+
+	
+
+
+plt.show()
 
 sys.exit()
 """

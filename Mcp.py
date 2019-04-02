@@ -24,24 +24,38 @@ class Mcp:
 
 	def is_electron_in_bulk(self, electron):
 
-		#safety check, is it already defined to be intersected?
-		if(electron.get_intersected()):
+		if(electron.get_pos_z() > 0):
+			return False
+
+		else:
 			return True
 
-		#defines radius of the pore as specified for the instance
-		r = self.pore_rad
+"""
+		#safety check, is it already defined to be intersected?
+		if(electron.get_intersected()) == True:
+			return True
+
+		#defines radius of the pore for specific Mcp object
+
+		radius = self.pore_rad
 
 		for pore_x in self.x_pores:
 			for pore_y in self.y_pores:
+
+				if(electron.get_pos_z() < 0):
+					return True
 				#if it is not even in the z bounds of the MCP
-				if(not (min(self.z_bounds) < electron.get_pos_z() < max(self.z_bounds))):
+				if(electron.get_pos_z() > max(self.z_bounds)):
 					return False
+
 
 				#if it is inside of one of the pores but has not 
 				#entered the bulk of the MCP
-				if (electron.get_pos_x() - pore_x)**2 + ((electron.get_pos_y() - pore_y) + ((electron.get_pos_z())*np.sin(np.pi/5)))**2 <= r**2:
+				if (electron.get_pos_x() - pore_x)**2 + ((electron.get_pos_y() - pore_y) + ((electron.get_pos_z())*np.sin(np.pi/5)))**2 <= radius**2:
 					#ax.scatter(electron.get_pos_x(), electron.get_pos_y(), electron.get_pos_z(), s=1, color='k')
 					return False
 
 				else:
 					True
+
+"""
