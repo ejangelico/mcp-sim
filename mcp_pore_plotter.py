@@ -7,49 +7,84 @@ from mpl_toolkits.mplot3d import Axes3D
 import sys
 import time
 
-# generate random electrons with random positions
-electrons=[]
 
-for i in range(100):
-	xyrange = [-1000, 1000]
-	#random dist of electrons between -1000 and 1000 microns all at z=5e5 microns
-	pos = [np.random.uniform(xyrange[0], xyrange[1]), np.random.uniform(xyrange[0], xyrange[1]), 5e5]
-	electron=Electron.Electron(pos)
-	electrons.append(electron)
+def create_random_electrons(nelec, xyrange, z):
+	# generate random electrons with random positions
+	electrons=[]
 
-#create E field
-field = Field.Field(2)
+	for i in range(nelec):
+		#random dist of electrons between -1000 and 1000 microns all at z=5e5 microns
+		pos = [np.random.uniform(xyrange[0], xyrange[1]), np.random.uniform(xyrange[0], xyrange[1]), z]
+		electron=Electron.Electron(pos, [0,0,0],[0,0,0])
+		electrons.append(electron)
 
-#create an Mcp instance. Requires parameters: pore radius, square dimension, pore spacing
-mcpthick = 1000. #um
-pore_rad = 10. #um
-pore_space = pore_rad + 3 #um
-mcplength = 33. #mm
-pore_bias_x = 8. #degrees
-pore_bias_y = 0. #degrees
-top_z_coord = 1e4 #um
-my_mcp=Mcp.Mcp(pore_rad, mcplength, pore_space, mcpthick, pore_bias_x, pore_bias_y)
+	return electrons
 
 
-timestep = 0.01 #nanoseconds
-endtime = 2 #nanoseconds
-curtime = 0
-while True:
-	if(int(curtime*1000) % 100 == 0):
-		print "evolved to time " + str(curtime) + " ns"
+def evolve_elecs(el, mcp, E):
+	timestep = 0.005 #nanoseconds
+	endtime = 1 #nanoseconds
+	curtime = 0
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	while True:
+		if(int(curtime*1000) % 100 == 0):
+			print "evolved to time " + str(curtime) + " ns"
 
-	if(curtime > endtime):
-		break
+		if(curtime > endtime):
+			break
 
-	for e in electrons:
-		in_bulk = my_mcp.is_electron_in_bulk(e) #checks to see if electon has propagated inside the bulk of the MCP
-		if in_bulk == False:
-			e.propagate(field, timestep) #the propagate functionrequires the params: field object, time step. Currently only in z direction.
+		for e in el:
+			in_bulk = my_mcp.is_electron_in_bulk(e) #checks to see if electon has propagated inside the bulk of the MCP
+			if(in_bulk == False):
+				e.propagate(field, timestep) #the propagate functionrequires the params: field object, time step. Currently only in z direction.
 
-		else:
-			e.set_intersected(True)
 
-	curtime += timestep
+			else:
+				e.set_intersected(True)
+
+		curtime += timestep
+		
+
+	mcp.plot_pores(ax)
+	plot_all_elecs(el, ax)
+	plt.show()
+	#zs = [e.get_pos()[2] for e in el]
+	#fig, ax = plt.subplots()
+	#ax.hist(zs)
+	#plt.show()
+
+def plot_all_elecs(el, ax = None):
+	if(ax is None):
+		fig = plt.figure()
+		ax = fig.add_subplot(111, projection='3d')
+
+	for e in el:
+		p = e.get_pos()
+		ax.scatter(p[0], p[1], p[2], c='k')
+
+	
+
+if __name__ == "__main__":
+	el = create_random_electrons(1000, [-100,100], 15)
+
+
+	#create E field
+	field = Field.Field(-200)
+
+	#create an Mcp instance. Requires parameters: pore radius, square dimension, pore spacing
+	mcpthick = 1000. #um
+	pore_rad = 40. #um
+	pore_space = 2*pore_rad + 3 #um
+	mcplength = 0.060 #mm
+	pore_bias = 8. #degrees
+	top_z_coord = 0 #um
+	my_mcp=Mcp.Mcp(pore_rad, mcplength, pore_space, top_z_coord, mcpthick, pore_bias)
+
+	evolve_elecs(el, my_mcp, field)
+	plot_all_elecs(el)
+
+
 
 
 
@@ -92,4 +127,7 @@ for electron in electrons:
 
 plt.show()
 """
+
+
+
 
