@@ -1,8 +1,10 @@
 import numpy as np 
 import Field
+import sys
 
-global cc
-cc = 299792 #um/ns
+global cc 
+cc = 29.9792 #cm per ns
+		
 
 #creating an electron. Currently looking at an E field in the x direction.
 class Electron:
@@ -17,14 +19,20 @@ class Electron:
 		#electron-volts and then having some functions that
 		#solely do unit conversion math - constants being contained
 		#in those functions
-		self.mass = 511000 #eV/c^2
-		self.pos = pos #um
-		self.vel = vel #um/ns
-		self.acc = acc #um/ns^2
-		self.local_time = 0
+		self.mass = 511000 #eV
+		self.pos = pos
+		self.vel = vel
+		self.acc = acc
+		self.time = 0 #current time in electrons frame
+
 		#State variables
 		self.last_pos = pos
+		#is it presently in the bulk of material
 		self.is_intersected = False
+
+		#this attribute stores the pore object
+		#that the electron is presently in. 
+		self.in_pore = None
 
 	
 	def get_pos(self):
@@ -33,29 +41,12 @@ class Electron:
 	def get_lastpos(self):
 		return self.last_pos
 
-	def get_local_time(self):
-		return self.local_time
-
 	def get_vel(self):
 		return self.vel
 
-	def get_pos_x(self):
-		return self.pos[0]
+	def get_in_pore(self):
+		return self.in_pore
 
-	def get_pos_y(self):
-		return self.pos[1]
-
-	def get_pos_z(self):
-		return self.pos[2]
-
-	def get_vel_x(self):
-		return self.vel[0]
-
-	def get_vel_y(self):
-		return self.vel[1]
-
-	def get_vel_z(self):
-		return self.vel[2]
 
 	def get_intersected(self):
 		return self.is_intersected
@@ -63,26 +54,35 @@ class Electron:
 	def set_intersected(self, a):
 		self.is_intersected = a
 
-	def set_pos(self, p):
-		self.pos = p
+	def set_in_pore(self, pore):
+		self.in_pore = pore
 
 
 	
 	#currently set up to propagate the kinematics through steps of dt
 	#dt in nanoseconds
-	def propagate(self, f, dt):
-		#vector [x,y,z] field value
-		Emag = f.get_magnitude(self.pos) 
+	def propagate(self, field, dt):
 
-		self.acc[2] = cc*cc* 1e-4 * (Emag[2]/self.mass) #1/um
+		#pseudocode:
+		#if(is_intersected is True):
+		#	find intersection point and time
+		# 	set the electron position/time to be that value	(interpolation)
+		#	*calculate absorption probability
+		#	*create secondary electrons if needed
+		#	calculate scattering angle and new velocity
+		#	is_intersected = False
+		#
+		#propagate once 
+
+
+		#vector [x,y,z] field value
+		Emag = field.get_field_vector(self.pos) # V/cm
+
+		self.acc = [(_*cc*cc*10000.0)/self.mass for _ in Emag] #micron/ns**2
 		self.last_pos = self.pos
-		for i in range(3):
+		for i in range(len(self.vel)):
 			self.vel[i] = self.vel[i] + self.acc[i]*dt
 			self.pos[i] = self.pos[i] + self.vel[i]*dt
-
-			
-			
-
 
 	
 		
