@@ -24,9 +24,10 @@ class Mcp:
 
 		for x_coord in self.x_pores:
 			for y_coord in self.y_pores:
-				pore_center = [pore_pos[0], pore_pos[1], mcp.top_z_coord - 0.5*mcp.thickness] #this is the center of the pore
-				pore_top = [pore_pos[0], pore_pos[1] - 0.5*mcp.thickness*np.tan(mcp.angle), pore_center[2] + 0.5*mcp.thickness] #This is the top of pore on axis
-				pore_axis = [pore_top[i] - pore_top[i] for i in range(len(pore_top))]
+				pore_pos = [x_coord, y_coord]
+				pore_center = [pore_pos[0], pore_pos[1], self.top_z_coord - 0.5*self.thickness] #this is the center of the pore
+				pore_top = [pore_pos[0], pore_pos[1] - 0.5*self.thickness*np.tan(self.angle), pore_center[2] + 0.5*self.thickness] #This is the top of pore on axis
+				pore_axis = [pore_top[i] - pore_top[i] for i in range(3)]
 
 				pore = Pore.Pore([x_coord, y_coord], pore_axis, self.angle, self.pore_rad) #creates a pore that knows its position and axis
 				self.pores.append(pore)
@@ -41,7 +42,7 @@ class Mcp:
 			for pore_y in self.y_pores:
 				#define a line that is the cylinder's axis.
 				#p1 and p2 are two points on the line
-				p0 = np.array([pore_x, pore_y, self.top_z_coord - 0.5*self.thickness]) #center of pore
+				p0 = np.array([pore_x, pore_y + 0.5*self.thickness*np.tan(self.angle), self.top_z_coord - self.thickness]) #center of pore
 				p1 = np.array([pore_x, pore_y - 0.5*self.thickness*np.tan(self.angle), self.top_z_coord]) #pore top with angle shift
 
 				R = self.pore_rad
@@ -72,6 +73,8 @@ class Mcp:
 				ax.plot_surface(X, Y, Z, alpha=0.3)
 				#plot axis
 				ax.plot(*zip(p0, p1), color = 'red')
+
+
 
 
 	def get_pore_rad(self):
@@ -140,6 +143,18 @@ class Mcp:
 		#z bounds of the MCP, then it has hit
 		#the top surface in this iteration
 		else: 
+			return False
+
+
+
+	def get_top_zcoord(self):
+		return self.top_z_coord
+
+	def get_thickness(self):
+		return self.thickness
+
+	def get_angle(self):
+		return self.angle
 
 			
 			
