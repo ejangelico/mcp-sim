@@ -60,8 +60,8 @@ class Electron:
 	def set_in_pore(self, pore):
 		self.in_pore = pore
 
-	def set_pos(self, pos):
-		self.pos = pos
+	def set_pos(self, a):
+		self.pos = a
 
 	def set_lastpos(self, last_pos):
 		self.last_pos = last_pos
@@ -74,32 +74,24 @@ class Electron:
 	#currently set up to propagate the kinematics through steps of dt
 	#dt in nanoseconds
 	def propagate(self, mcp, field, dt):
+		if (self.is_intersected == True):
+			self.set_intersected(True)
 
-		thickness = 500
+		if(self.is_intersected==True):	#INTERPOLATE
 
-		if(self.is_intersected==True):
-			#INTERPOLATE
 			pore = self.in_pore #Gives us which pore object the electron is in
-			angle = mcp.get_angle() 
-			if(pore ==None):
-				return False
-			#Tet the location info for our pore
-			pore_pos = pore.get_pore_pos() #Centroid of pore
-			print "pore pos is: ", pore_pos
-			x_pore = pore_pos[0] #Break it out for later
-			y_pore = pore_pos[1] - 0.5*thickness*np.tan(angle)
+			angle = mcp.get_angle()  #get the bias angle
+
+			#get the location info for our pore
+			pore_center = pore.get_pore_center() #Centroid of pore
 			R = pore.get_pore_radius()
 
-			#Get the location info for our electron in the mcp frame
-			p0 = np.array(self.get_lastpos()) #before el left the pore
-			p1 = np.array(self.get_pos()) #after el left the pore
+			#Get atttributes of our electron in the mcp frame
+			p0 = np.array(self.get_lastpos()) #las electron position just before it jumped out of the pore
+			v = np.array(self.get_vel()) #the current velocity of the electron
 
-			dp1 = p1 - p0
-
-			print "inter vec pre rotation: ", dp1
-
-			#This is a passive rotation matrix. 
-			#We rotate into a pore frame such that the pores axis is parallel to z' axis.
+			#Next we want to rotate into the pore frame such that the pores central axis is parallel to our new z' axis.
+			#Define a passive rotation matrix about the x-axis
 			theta = angle
 
 			R_x = np.array([[1,         0,                  0                   ],
@@ -109,86 +101,77 @@ class Electron:
 
 
 
+
 			#We will have to rotate our pore centroids into the pore frame
-			y_pore = y_pore * np.cos(theta)
-			x_pore = x_pore
+			pore_center_prime = np.dot(R_x, pore_center)
+			x_cent = pore_center_prime[0]
+			y_cent = pore_center_prime[1]
 
-
-			#Electron positions in the pore frame
+			#Rotate to get electron position in the pore frame coordinates
 			p0 = np.dot(R_x, p0)
-			p1 = np.dot(R_x, p1)
 
-			#Interpolation vector in the pore frame.
-			dp = p1-p0
-
-			print "inter vec: ", dp
+			#Electron velocity in the pore frame coordiantes
+			v = np.dot(R_x, v)
 
 			#To find the exact intersection location, we must first parameterize our interpolation line A(t) = p0 + dpt (pore frame).
 			#Then we can look at the projection of this line onto a circle perpendicualr to the pore's axis. 
-			#We then set the magnitude of this projection equal to the radius of our pore and solve for the free parameter t.
-			#The np.roots function requires our polynomial to be in standard form in order to solve for t. 
-			#I have separated out the expression by order of t. 
-			const = p0[0]**2 + p0[1]**2 + y_pore**2 + x_pore**2 - 2*p0[0]*x_pore - 2*p0[1]*y_pore - R**2
-
-			first = 2*dp[0]*p0[0] + 2*dp[1]*p0[1] - 2*dp[0]*x_pore - 2*dp[1]*y_pore 
-
-			second = dp[0]**2 + dp[1]**2
+			#We then solve for t such that our interpolation line satisfies the equation of that circle. 
+			#t is thus the time we must evolve our electron from its last position such that it is intersecting the pore wall
+			
+			#We parameterize our interpolation line and group coefficients by order of t
+			second = v[0]**2 + v[1]**2 
+			first = 2*p0[0]*v[0] - 2*x_cent*v[0] + 2*p0[1]*v[1] - 2*y_cent*v[1]
+			const = p0[0]**2 + p0[1]**2 - 2*x_cent*p0[0] - 2*y_cent*p0[1] + x_cent**2 + y_cent**2 - R**2
 
 			coeffs = [second, first, const]
 
-			print coeffs
+			zeroes = (np.roots(coeffs)) #the np.roots function takes polynomial coeffs in descending order and returns solutions
 
-			roots = np.roots(coeffs)
+			t = max(zeroes) #We take the positive time value
 
-			print roots, "roots"
-
-			t = roots[roots > 0]
-			print "time is: ", t
-
-			#Now we can evaluate our interpolation line at the appropriate value of t.
-			#This gives us the point of intersection in the pore frame.
-			p_intr = p0 + dp*t
-
-
-			theta = -1* theta 
+			p_intr = [p0[i] + v[i]*t for i in range(len(p0))] #we define the intersection point in the pore frame coordinates
+			
+			#Then we need to rotate back into our lab frame
+			theta = -theta
 
 			R_x = np.array([[1,         0,                  0                   ],
 			                   [0,         np.cos(theta), np.sin(theta) ],
 			                   [0,         -np.sin(theta), np.cos(theta)  ]
 			                   ])
 
-			#Finally, we express the point of intersection in our lab frame by passively rotating back the way we came. 
-			p_intr = np.dot(R_x, p_intr)
+			p_intr = np.dot(R_x, p_intr) 
 
+			
+			#Finally, we set the time and position attributes of our electron to the values found via interpolation
 			self.set_time(t)
 			self.set_pos(p_intr)
+		# self.set_intersected(False)
 
 			
 
-		#pseudocode:
-		#if(is_intersected is True):
-		#	find intersection point and time
-		# 	set the electron position/time to be that value	(interpolation)
-		#	*calculate absorption probability
-		#	*create secondary electrons if needed
-		#	calculate scattering angle and new velocity
-		#	is_intersected = False
-		#
-		#propagate once 
+		# #pseudocode:
+		# #if(is_intersected is True):
+		# #	find intersection point and time
+		# # 	set the electron position/time to be that value	(interpolation)
+		# #	*calculate absorption probability
+		# #	*create secondary electrons if needed
+		# #	calculate scattering angle and new velocity
+		# #	is_intersected = False
+		# #
+		# #propagate once 
 		else:
 			#vector [x,y,z] field value
 			Emag = field.get_field_vector(self.pos) # V/cm
 
 			self.acc = [(_*cc*cc*10000.0)/self.mass for _ in Emag] #micron/ns**2
 			for i in range(len(self.vel)):
+				self.last_pos[i] = self.pos[i]
 				self.vel[i] = self.vel[i] + self.acc[i]*dt
 				self.pos[i] = self.pos[i] + self.vel[i]*dt
 
-			for i in range(len(self.pos)):
-				self.last_pos[i] = self.pos[i] - self.vel[i]*dt
 
 			if(self.last_pos[2] == self.pos[2]):
-				print "last position is same as position \n"
+				print ("last position is same as position \n")
 
 
 

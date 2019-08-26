@@ -25,11 +25,11 @@ class Mcp:
 		for x_coord in self.x_pores:
 			for y_coord in self.y_pores:
 				pore_pos = [x_coord, y_coord]
-				pore_center = [pore_pos[0], pore_pos[1], self.top_z_coord - 0.5*self.thickness] #this is the center of the pore
-				pore_top = [pore_pos[0], pore_pos[1] - 0.5*self.thickness*np.tan(self.angle), pore_center[2] + 0.5*self.thickness] #This is the top of pore on axis
-				pore_axis = [pore_top[i] - pore_top[i] for i in range(3)]
+				pore_center = [pore_pos[0], pore_pos[1] + 0.5*self.thickness*np.tan(self.angle), self.top_z_coord - 0.5*self.thickness] #this is the center of the pore
+				pore_top = [pore_pos[0], pore_pos[1], pore_center[2] + 0.5*self.thickness] #This is the top of pore on central axis
+				pore_axis = [pore_top[i] - pore_center[i] for i in range(3)]
 
-				pore = Pore.Pore([x_coord, y_coord], pore_axis, self.angle, self.pore_rad) #creates a pore that knows its position and axis
+				pore = Pore.Pore([x_coord, y_coord], pore_center, pore_axis, self.angle, self.pore_rad) #creates a pore that knows its position and axis
 				self.pores.append(pore)
 
 
@@ -42,8 +42,8 @@ class Mcp:
 			for pore_y in self.y_pores:
 				#define a line that is the cylinder's axis.
 				#p1 and p2 are two points on the line
-				p0 = np.array([pore_x, pore_y + 0.5*self.thickness*np.tan(self.angle), self.top_z_coord - self.thickness]) #center of pore
-				p1 = np.array([pore_x, pore_y - 0.5*self.thickness*np.tan(self.angle), self.top_z_coord]) #pore top with angle shift
+				p0 = np.array([pore_x, pore_y + 0.5*self.thickness*np.tan(self.angle), self.top_z_coord - 0.5*self.thickness]) #center of pore
+				p1 = np.array([pore_x, pore_y, self.top_z_coord]) #pore top, i.e. intersection with x-y plane
 
 				R = self.pore_rad
 				#vector in direction of axis
@@ -101,8 +101,8 @@ class Mcp:
 			
 			#define a line that is the cylinder's axis.
 			#p1 and p2 are two points on the line
-			p1 = [pore_pos[0], pore_pos[1], self.top_z_coord - 0.5*self.thickness] #center of pore
-			p2 = [pore_pos[0], pore_pos[1] - 0.5*self.thickness*np.tan(self.angle), p1[2] + 0.5*self.thickness] #pore top with angle shift
+			p1 = [pore_pos[0], pore_pos[1] + 0.5*self.thickness*np.tan(self.angle), self.top_z_coord - 0.5*self.thickness] #center of pore
+			p2 = [pore_pos[0], pore_pos[1], p1[2] + 0.5*self.thickness] #pore top intersection with xy plane
 			p0 = electron.get_pos()
 
 			p01 = [p0[i] - p1[i] for i in range(len(p1))]
@@ -130,6 +130,7 @@ class Mcp:
 		#hit the wall in this iteration
 		if(1 in in_a_pore):
 			return True
+			electron.set_intersected(False)
 
 		#if the electron WAS in a pore, but
 		#now is not, then it has hit a wall

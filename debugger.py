@@ -146,8 +146,87 @@ import time
 
 #************************************** Now Just Try Rotating into Frame of Cylinder
 
+# Let's define a pore with radius R rotated about the x-axis by angle theta
+# R = 4
+# theta = 0
+
+# #This is a passive rotation matrix. 
+# #We rotate into a pore frame such that the pores axis is parallel to z' axis.
+# R_x = np.array([[1,         0,                  0                   ],
+#                    [0,         np.cos(theta), np.sin(theta) ],
+#                    [0,         -np.sin(theta), np.cos(theta)  ]
+#                    ])
+
+
+# #Define the x and y intercepts of our pore
+# x_pore = 10
+# y_pore = 10
+
+# #We will have to transform our pore centroids as we rotate about the x-axis
+# y_pore = y_pore * np.cos(theta)
+# x_pore = x_pore
+
+# #Electron positions in the lab frame
+# p0 = np.array([10, 11, 0])
+# p1 = np.array([10, 30, 0])
+# v = np.array([1, 0, 0])
+
+# #Electron positions in the rotated frame
+# p0 = np.dot(R_x, p0)
+# p1 = np.dot(R_x, p1)
+# v = np.dot(R_x, v)
+
+# #Interpolation vector in the rotated frame.
+# dp = p1-p0
+
+# print(dp, "interp vec")
+
+# #To find the exact intersection location, we must first parameterize our interpolation line A(t) = p0 + dpt (pore frame).
+# #Then we can look at the projection of this line onto a circle perpendicualr to the pore's axis. 
+# #We then set the magnitude of this projection equal to the radius of our pore and solve for the free parameter t.
+# #The np.roots function requires our polynomial to be in standard form in order to solve for t. 
+# #I have separated out the expression in orders of t. 
+
+# const = p0[0]**2 + p0[1]**2 + y_pore**2 + x_pore**2 - 2*p0[0]*x_pore - 2*p0[1]*y_pore - R**2
+
+# first = 2*dp[0]*p0[0] + 2*dp[1]*p0[1] - 2*dp[0]*x_pore - 2*dp[1]*y_pore 
+
+# second = dp[0]**2 + dp[1]**2
+
+# coeffs = [second, first, const]
+
+# print(coeffs, "coeffs")
+
+# roots = np.roots(coeffs)
+
+
+# t = roots
+
+# print(t, "roots")
+
+# #Now we can evaluate our interplation line at the appropriate value of t.
+# #This gives us the point of intersection in the pore frame.
+
+
+# theta = -1* theta 
+
+# R_x = np.array([[1,         0,                  0                   ],
+#                    [0,         np.cos(theta), np.sin(theta) ],
+#                    [0,         -np.sin(theta), np.cos(theta)  ]
+#                    ])
+
+# #Finally, we express the point of intersection in our lab frame by passively rotating back the way we came. 
+# p_intr = np.dot(R_x, p_intr)
+
+# print(p_intr)
+
+
+
+
+#************************************
+
 #Let's define a pore with radius R rotated about the x-axis by angle theta
-R = 2
+R = 4
 theta = np.pi/4
 
 #This is a passive rotation matrix. 
@@ -158,83 +237,50 @@ R_x = np.array([[1,         0,                  0                   ],
                    ])
 
 
-#Define the centroid of our pore
-x_pore = 50
-y_pore = 50
+#Define the x and y intercepts of our pore
+x_pore = 10
+y_pore = 10
 
 #We will have to transform our pore centroids as we rotate about the x-axis
 y_pore = y_pore * np.cos(theta)
-x_pore = x_pore
+x_pore = x_pore 
+
 
 #Electron positions in the lab frame
-p0 = np.array([50, 50, 0])
-p1 = np.array([50, 559, 0])
+p0 = np.array([10, 10, -3])
+p1 = np.array([10, 30, 0])
+v = np.array([0, 1, 0])
 
-#Electron positions in the rotated frame
+#Electron positions and vel in the rotated frame
 p0 = np.dot(R_x, p0)
 p1 = np.dot(R_x, p1)
+v = np.dot(R_x, v)
 
-#Interpolation vector in the rotated frame.
-dp = p1-p0
-
-print dp, "interp vec"
-
-#To find the exact intersection location, we must first parameterize our interpolation line A(t) = p0 + dpt (pore frame).
-#Then we can look at the projection of this line onto a circle perpendicualr to the pore's axis. 
-#We then set the magnitude of this projection equal to the radius of our pore and solve for the free parameter t.
-#The np.roots function requires our polynomial to be in standard form in order to solve for t. 
-#I have separated out the expression in orders of t. 
+#We then parameterize our ray and group coefficients by order
+second = v[0]**2 + v[1]**2 
+first = 2*(p0[0] - x_pore)*v[0] + 2*(p0[1] - y_pore)*v[1]
 const = p0[0]**2 + p0[1]**2 + y_pore**2 + x_pore**2 - 2*p0[0]*x_pore - 2*p0[1]*y_pore - R**2
-
-first = 2*dp[0]*p0[0] + 2*dp[1]*p0[1] - 2*dp[0]*x_pore - 2*dp[1]*y_pore 
-
-second = dp[0]**2 + dp[1]**2
 
 coeffs = [second, first, const]
 
-print coeffs, "coeffs"
+t = max(np.roots(coeffs))
 
-roots = np.roots(coeffs)
+print (t)
 
-t = roots[roots > 0]
+p_intr = [p0[i] + v[i]*t for i in range(3)]
 
-#Now we can evaluate our interplation line at the appropriate value of t.
-#This gives us the point of intersection in the pore frame.
-p_intr = p0 + dp*t
+#Then we need to rotate back into our lab frame
 
-
-theta = -1* theta 
+theta = -theta
 
 R_x = np.array([[1,         0,                  0                   ],
                    [0,         np.cos(theta), np.sin(theta) ],
                    [0,         -np.sin(theta), np.cos(theta)  ]
                    ])
 
-#Finally, we express the point of intersection in our lab frame by passively rotating back the way we came. 
-p_intr = np.dot(R_x, p_intr)
+p_intr = np.dot(R_x, p_intr) 
 
-print p_intr
-
-
-#so now let's do that original shit
-
-# d = np.linalg.norm(pos_intr - p0)
-
-# dp = [p1[i] - p0[i] for i in range(3)]
-
-# coeffs = [dp[0]**2 + dp[1]**2 + dp[2]**2, 2*(p0[0]*dp[0] + p0[1]*dp[1] + p0[2]*dp[2]), p0[0]**2 + p0[1]**2 + p0[2]**2 - d**2]
-
-# roots = np.roots(coeffs)
-
-# t = roots[roots > 0]
-# t = t[0] #gives 
-
-# print t
-
-
-
-
-
+print (p_intr)
 
 
 

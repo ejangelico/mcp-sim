@@ -32,7 +32,7 @@ def evolve_elecs(el, mcp, E):
 
 	while True:
 		if(int(curtime*1000) % 100 == 0):
-			print "evolved to time " + str(curtime) + " ns"
+			print ("evolved to time " + str(curtime) + " ns")
 
 		if(curtime > endtime):
 			break
@@ -43,7 +43,7 @@ def evolve_elecs(el, mcp, E):
 
 		curtime += timestep
 
-		if(e.get_time() > 1):
+		if(curtime > 1):
 			break
 		#if all electrons are at z = -5 or 
 		#one electron reaches t = 5 ns then break
