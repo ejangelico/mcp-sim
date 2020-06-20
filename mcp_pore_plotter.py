@@ -17,14 +17,14 @@ def create_random_electrons(nelec, xyrange, z):
 		t_0 = 0.
 		#random dist of electrons between -1000 and 1000 microns all at z=5e5 microns
 		pos = [np.random.uniform(xyrange[0], xyrange[1]), np.random.uniform(xyrange[0], xyrange[1]), z]
-		electron=Electron.Electron(pos, [0.,0.,0.],[0.,0.,0.], t_0)
+		electron=Electron.Electron(pos, [0., 0., 0.],[0.,0.,0.], t_0)
 		electrons.append(electron)
 
 	return electrons
 
 
 def evolve_elecs(el, mcp, E):
-	timestep = 0.005 #nanoseconds
+	timestep = 0.0005 #nanoseconds
 	endtime = 1 #nanoseconds
 	curtime = 0
 	fig = plt.figure()
@@ -39,7 +39,8 @@ def evolve_elecs(el, mcp, E):
 
 		for e in el:
 			my_mcp.check_in_pore(e) #checks to see if electon has propagated inside the bulk of the MCP
-			e.propagate(my_mcp, field, timestep) #the propagate function requires the params: field object, time step. Currently only in z direction.
+
+			e.propagate(my_mcp, field, timestep, curtime) #the propagate function requires the params: field object, time step. Currently only in z direction.
 
 		curtime += timestep
 
@@ -74,7 +75,7 @@ def plot_all_elecs(el, ax = None):
 	
 
 if __name__ == "__main__":
-	el = create_random_electrons(1000, [-100.,100.], 15.)
+	el = create_random_electrons(1, [-100.,100.], 15.)
 
 
 	#create E field
