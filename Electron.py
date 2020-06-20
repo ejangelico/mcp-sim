@@ -19,11 +19,12 @@ class Electron:
 		#electron-volts and then having some functions that
 		#solely do unit conversion math - constants being contained
 		#in those functions
-		self.mass = 511000 #eV
+		self.mass = 511000 #eV/c^2
 		self.pos = pos
 		self.vel = vel
 		self.acc = acc
 		self.time = t_0 #current time in electrons frame
+		self.last_pos_time = t_0 #stores time from the previous step in propagation
 
 		#State variables
 		self.last_pos = [0, 0, 0]
@@ -73,9 +74,7 @@ class Electron:
 	
 	#currently set up to propagate the kinematics through steps of dt
 	#dt in nanoseconds
-	def propagate(self, mcp, field, dt):
-		if (self.is_intersected == True):
-			self.set_intersected(True)
+	def propagate(self, mcp, field, dt, time):
 
 		if(self.is_intersected==True):	#INTERPOLATE
 
@@ -87,7 +86,7 @@ class Electron:
 			R = pore.get_pore_radius()
 
 			#Get atttributes of our electron in the mcp frame
-			p0 = np.array(self.get_lastpos()) #las electron position just before it jumped out of the pore
+			p0 = np.array(self.get_lastpos()) #electron position just before it stepped out of the pore, i.e. just before it broke the rules
 			v = np.array(self.get_vel()) #the current velocity of the electron
 
 			#Next we want to rotate into the pore frame such that the pores central axis is parallel to our new z' axis.
@@ -129,7 +128,7 @@ class Electron:
 
 			t = max(zeroes) #We take the positive time value
 
-			p_intr = [p0[i] + v[i]*t for i in range(len(p0))] #we define the intersection point in the pore frame coordinates
+			p_intr = [p0[i] + v[i]*t for i in range(len(p0))] #we define the intersection point in pore frame coordinates
 			
 			#Then we need to rotate back into our lab frame
 			theta = -theta
@@ -143,8 +142,9 @@ class Electron:
 
 			
 			#Finally, we set the time and position attributes of our electron to the values found via interpolation
-			self.set_time(t)
+			self.set_time(t + self.last_pos_time)
 			self.set_pos(p_intr)
+			#print("landed at: \n", "pos: ", p_intr, "\n time: ", t + self.last_pos_time)
 		# self.set_intersected(False)
 
 			
@@ -168,10 +168,11 @@ class Electron:
 				self.last_pos[i] = self.pos[i]
 				self.vel[i] = self.vel[i] + self.acc[i]*dt
 				self.pos[i] = self.pos[i] + self.vel[i]*dt
+				self.time = time + dt
+				self.last_pos_time = time
 
 
-			if(self.last_pos[2] == self.pos[2]):
-				print ("last position is same as position \n")
+
 
 
 

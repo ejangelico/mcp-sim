@@ -75,7 +75,7 @@ def plot_all_elecs(el, ax = None):
 	
 
 if __name__ == "__main__":
-	el = create_random_electrons(1, [-100.,100.], 15.)
+	el = create_random_electrons(10, [-100.,100.], 15.)
 
 
 	#create E field
